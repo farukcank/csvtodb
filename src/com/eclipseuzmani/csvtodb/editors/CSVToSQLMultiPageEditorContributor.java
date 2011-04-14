@@ -18,13 +18,16 @@ import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 import com.eclipseuzmani.csvtodb.wizards.CsvToSqlActionWizard;
 
 /**
- * Manages the installation/deinstallation of global actions for multi-page editors.
- * Responsible for the redirection of global actions to the active editor.
- * Multi-page contributor replaces the contributors for the individual editors in the multi-page editor.
+ * Manages the installation/deinstallation of global actions for multi-page
+ * editors. Responsible for the redirection of global actions to the active
+ * editor. Multi-page contributor replaces the contributors for the individual
+ * editors in the multi-page editor.
  */
-public class CSVToSQLMultiPageEditorContributor extends EditorActionBarContributor {
+public class CSVToSQLMultiPageEditorContributor extends
+		EditorActionBarContributor {
 	private CSVToSQLMultiPageEditor activeEditorPart;
 	private Action sampleAction;
+
 	/**
 	 * Creates a multi-page contributor.
 	 */
@@ -32,39 +35,47 @@ public class CSVToSQLMultiPageEditorContributor extends EditorActionBarContribut
 		super();
 		createActions();
 	}
-	/* (non-JavaDoc)
-	 * Method declared in AbstractMultiPageEditorActionBarContributor.
+
+	/*
+	 * (non-JavaDoc) Method declared in
+	 * AbstractMultiPageEditorActionBarContributor.
 	 */
 
-	public void setActivePage(IEditorPart part) {
-		if (activeEditorPart == part)
+	public void setActiveEditor(IEditorPart targetEditor) {
+		if (activeEditorPart == targetEditor)
 			return;
-		if (!(part instanceof CSVToSQLMultiPageEditor))
+		if (!(targetEditor instanceof CSVToSQLMultiPageEditor)) {
+			activeEditorPart = null;
 			return;
+		}
 
-		activeEditorPart = (CSVToSQLMultiPageEditor) part;
+		activeEditorPart = (CSVToSQLMultiPageEditor) targetEditor;
 	}
+
 	private void createActions() {
 		sampleAction = new Action() {
 			public void run() {
-				CsvToSqlActionWizard wizard =  new CsvToSqlActionWizard();
-				WizardDialog dialog = new WizardDialog(getPage().getActivePart().getSite().getShell(), wizard);
-			    dialog.create();
-			    dialog.open();
-				//CsvToSql csvToSql = activeEditorPart.getCsvToSql();
-				//System.out.println("Executed : "+csvToSql);
+				CsvToSqlActionWizard wizard = new CsvToSqlActionWizard(activeEditorPart.getCsvToSql());
+				WizardDialog dialog = new WizardDialog(activeEditorPart.getSite().getShell(), wizard);
+				dialog.create();
+				dialog.open();
+				// CsvToSql csvToSql = activeEditorPart.getCsvToSql();
+				// System.out.println("Executed : "+csvToSql);
 			}
 		};
 		sampleAction.setText("Generate Sql");
 		sampleAction.setToolTipText("Generate sql for given csv input");
-		sampleAction.setImageDescriptor(PlatformUI.getWorkbench().getSharedImages().
-				getImageDescriptor(IDE.SharedImages.IMG_OBJS_TASK_TSK));
+		sampleAction.setImageDescriptor(PlatformUI.getWorkbench()
+				.getSharedImages()
+				.getImageDescriptor(IDE.SharedImages.IMG_OBJS_TASK_TSK));
 	}
+
 	public void contributeToMenu(IMenuManager manager) {
 		IMenuManager menu = new MenuManager("Editor &Menu");
 		manager.prependToGroup(IWorkbenchActionConstants.MB_ADDITIONS, menu);
 		menu.add(sampleAction);
 	}
+
 	public void contributeToToolBar(IToolBarManager manager) {
 		manager.add(new Separator());
 		manager.add(sampleAction);
