@@ -1,20 +1,17 @@
 package com.eclipseuzmani.csvtodb.editors;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.io.PipedInputStream;
 import java.io.PipedOutputStream;
-import java.io.StringWriter;
-import java.text.Collator;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.StringTokenizer;
 import java.util.concurrent.Callable;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 
+import javax.xml.XMLConstants;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
 import javax.xml.transform.TransformerConfigurationException;
@@ -22,41 +19,42 @@ import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.sax.SAXTransformerFactory;
 import javax.xml.transform.sax.TransformerHandler;
 import javax.xml.transform.stream.StreamResult;
+import javax.xml.validation.Schema;
+import javax.xml.validation.SchemaFactory;
+import javax.xml.validation.ValidatorHandler;
 
 import org.eclipse.core.resources.IFile;
-import org.eclipse.core.resources.IMarker;
 import org.eclipse.core.resources.IResourceChangeEvent;
 import org.eclipse.core.resources.IResourceChangeListener;
 import org.eclipse.core.resources.ResourcesPlugin;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.IProgressMonitor;
-import org.eclipse.jface.dialogs.ErrorDialog;
 import org.eclipse.jface.layout.GridDataFactory;
 import org.eclipse.swt.SWT;
-import org.eclipse.swt.custom.StyledText;
 import org.eclipse.swt.events.ModifyEvent;
 import org.eclipse.swt.events.ModifyListener;
-import org.eclipse.swt.events.SelectionAdapter;
-import org.eclipse.swt.events.SelectionEvent;
-import org.eclipse.swt.graphics.Font;
-import org.eclipse.swt.graphics.FontData;
-import org.eclipse.swt.layout.FillLayout;
 import org.eclipse.swt.layout.GridData;
 import org.eclipse.swt.layout.GridLayout;
-import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Composite;
 import org.eclipse.swt.widgets.Display;
-import org.eclipse.swt.widgets.FontDialog;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.Text;
-import org.eclipse.ui.*;
-import org.eclipse.ui.editors.text.TextEditor;
+import org.eclipse.ui.IEditorInput;
+import org.eclipse.ui.IEditorPart;
+import org.eclipse.ui.IEditorSite;
+import org.eclipse.ui.IStorageEditorInput;
+import org.eclipse.ui.IWorkbenchPage;
+import org.eclipse.ui.PartInitException;
 import org.eclipse.ui.part.EditorPart;
 import org.eclipse.ui.part.FileEditorInput;
-import org.eclipse.ui.part.MultiPageEditorPart;
-import org.eclipse.ui.ide.IDE;
+import org.xml.sax.Attributes;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
+import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.AttributesImpl;
+import org.xml.sax.helpers.DefaultHandler;
+import org.xml.sax.helpers.XMLReaderFactory;
 
 /**
  * An example showing how to create a multi-page editor. This example has 3
@@ -70,10 +68,96 @@ import org.xml.sax.helpers.AttributesImpl;
 public class CSVToSQLMultiPageEditor extends EditorPart {
 	private static final ExecutorService executorService = Executors
 			.newCachedThreadPool();
+
+	private static class CsvToSql {
+		private String pre;
+		private String post;
+		private String detail;
+
+		public String getPre() {
+			return pre;
+		}
+
+		public void setPre(String pre) {
+			this.pre = pre;
+		}
+
+		public String getPost() {
+			return post;
+		}
+
+		public void setPost(String post) {
+			this.post = post;
+		}
+
+		public String getDetail() {
+			return detail;
+		}
+
+		public void setDetail(String detail) {
+			this.detail = detail;
+		}
+
+		public CsvToSql(String pre, String detail, String post) {
+			this.pre = pre;
+			this.detail = detail;
+			this.post = post;
+		}
+
+		public CsvToSql() {
+		}
+	}
+
+	private static class CsvToSqlHandler extends DefaultHandler {
+		public final CsvToSql csvToSql = new CsvToSql();
+		private StringBuilder sb = new StringBuilder();
+
+		@Override
+		public void startElement(String uri, String localName, String qName,
+				Attributes attributes) throws SAXException {
+			sb.delete(0, sb.length());
+		}
+
+		@Override
+		public void characters(char[] ch, int start, int length)
+				throws SAXException {
+			sb.append(ch, start, length);
+		}
+
+		@Override
+		public void endElement(String uri, String localName, String qName)
+				throws SAXException {
+			if (localName.equals("pre")) {
+				csvToSql.setPre(sb.toString());
+			} else if (localName.equals("detail")) {
+				csvToSql.setDetail(sb.toString());
+			} else if (localName.equals("post")) {
+				csvToSql.setPost(sb.toString());
+			}
+		}
+
+		@Override
+		public void warning(SAXParseException e) throws SAXException {
+			throw e;
+		}
+
+		@Override
+		public void error(SAXParseException e) throws SAXException {
+			throw e;
+		}
+
+		@Override
+		public void fatalError(SAXParseException e) throws SAXException {
+			throw e;
+		}
+
+	}
+
 	private static final String SCHEMA_URI = "http://www.eclipseuzmani.com/csvtosql";
 	private Text pre;
 	private Text detail;
 	private Text post;
+	private CsvToSql csvToSql;
 	private boolean dirty;
 	private final ModifyListener modifyListener = new ModifyListener() {
 
@@ -145,6 +229,10 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 		post = new Text(composite, SWT.MULTI | SWT.BORDER);
 		GridDataFactory.defaultsFor(post).grab(true, true).applyTo(post);
 
+		pre.setText(csvToSql.pre);
+		detail.setText(csvToSql.detail);
+		post.setText(csvToSql.post);
+
 		pre.addModifyListener(modifyListener);
 		detail.addModifyListener(modifyListener);
 		post.addModifyListener(modifyListener);
@@ -175,15 +263,38 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 	}
 
 	@Override
+	protected void setInput(IEditorInput input) {
+		super.setInput(input);
+		IStorageEditorInput storageEditorInput = (IStorageEditorInput) getEditorInput()
+				.getAdapter(IStorageEditorInput.class);
+		try {
+			this.csvToSql = loadInternal(storageEditorInput.getStorage()
+					.getContents());
+			if (pre != null)
+				pre.setText(csvToSql.pre);
+			if (detail != null)
+				detail.setText(csvToSql.detail);
+			if (post != null)
+				post.setText(csvToSql.post);
+			setDirty(false);
+		} catch (SAXException e) {
+			throw new RuntimeException(e);
+		} catch (IOException e) {
+			throw new RuntimeException(e);
+		} catch (CoreException e) {
+			throw new RuntimeException(e);
+		}
+	}
+
+	@Override
 	public void doSaveAs() {
 	}
 
 	@Override
 	public void doSave(IProgressMonitor monitor) {
 		try {
-			final String pre = this.pre.getText();
-			final String detail = this.detail.getText();
-			final String post = this.post.getText();
+			final CsvToSql csvToSql = new CsvToSql(this.pre.getText(),
+					this.detail.getText(), this.post.getText());
 			IStorageEditorInput editorInput = (IStorageEditorInput) getEditorInput()
 					.getAdapter(IStorageEditorInput.class);
 			IFile file = (IFile) editorInput.getStorage();
@@ -193,7 +304,7 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 				@Override
 				public Void call() throws Exception {
 					try {
-						internalSave(pos, pre, detail, post);
+						internalSave(pos, csvToSql);
 						return null;
 					} finally {
 						pos.close();
@@ -217,8 +328,24 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 		}
 	}
 
-	private void internalSave(OutputStream out, String pre, String detail,
-			String post) throws TransformerFactoryConfigurationError,
+	private CsvToSql loadInternal(InputStream in) throws SAXException,
+			IOException {
+		String language = XMLConstants.W3C_XML_SCHEMA_NS_URI;
+		SchemaFactory factory = SchemaFactory.newInstance(language);
+		Schema schema = factory.newSchema(CSVToSQLMultiPageEditor.class
+				.getResource("CsvToSql.xsd"));
+		XMLReader xr = XMLReaderFactory.createXMLReader();
+		ValidatorHandler validatorHandler = schema.newValidatorHandler();
+		CsvToSqlHandler csvToSqlHandler = new CsvToSqlHandler();
+		validatorHandler.setContentHandler(csvToSqlHandler);
+		xr.setContentHandler(validatorHandler);
+		xr.setErrorHandler(csvToSqlHandler);
+		xr.parse(new InputSource(in));
+		return csvToSqlHandler.csvToSql;
+	}
+
+	private void internalSave(OutputStream out, CsvToSql csvToSql)
+			throws TransformerFactoryConfigurationError,
 			TransformerConfigurationException, SAXException {
 		StreamResult streamResult = new StreamResult(out);
 		SAXTransformerFactory tf = (SAXTransformerFactory) SAXTransformerFactory
@@ -236,17 +363,20 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 
 		atts.clear();
 		hd.startElement(SCHEMA_URI, "", "pre", atts);
-		hd.characters(pre.toCharArray(), 0, pre.length());
+		hd.characters(csvToSql.getPre().toCharArray(), 0, csvToSql.getPre()
+				.length());
 		hd.endElement(SCHEMA_URI, "", "pre");
 
 		atts.clear();
 		hd.startElement(SCHEMA_URI, "", "detail", atts);
-		hd.characters(detail.toCharArray(), 0, detail.length());
+		hd.characters(csvToSql.getDetail().toCharArray(), 0, csvToSql
+				.getDetail().length());
 		hd.endElement(SCHEMA_URI, "", "detail");
 
 		atts.clear();
 		hd.startElement(SCHEMA_URI, "", "post", atts);
-		hd.characters(post.toCharArray(), 0, post.length());
+		hd.characters(csvToSql.getPost().toCharArray(), 0, csvToSql.getPost()
+				.length());
 		hd.endElement(SCHEMA_URI, "", "post");
 
 		hd.endElement(SCHEMA_URI, "", "csvtosql");
