@@ -19,6 +19,8 @@ import org.eclipse.swt.widgets.Text;
 public class CsvToSqlActionWizardPage extends WizardPage {
 	private Text csvText;
 	private Text sqlText;
+	private String csvPath;
+	private String sqlPath;
 
 	protected CsvToSqlActionWizardPage() {
 		super("wizardPage");
@@ -39,11 +41,6 @@ public class CsvToSqlActionWizardPage extends WizardPage {
 		csvText = new Text(container, SWT.BORDER | SWT.SINGLE);
 		GridData gd = new GridData(GridData.FILL_HORIZONTAL);
 		csvText.setLayoutData(gd);
-		csvText.addModifyListener(new ModifyListener() {
-			public void modifyText(ModifyEvent e) {
-				dialogChanged();
-			}
-		});
 
 		Button button = new Button(container, SWT.PUSH);
 		button.setText("Browse...");
@@ -58,11 +55,6 @@ public class CsvToSqlActionWizardPage extends WizardPage {
 		sqlText = new Text(container, SWT.BORDER | SWT.SINGLE);
 		gd = new GridData(GridData.FILL_HORIZONTAL);
 		sqlText.setLayoutData(gd);
-		sqlText.addModifyListener(new ModifyListener() {
-			public void modifyText(ModifyEvent e) {
-				dialogChanged();
-			}
-		});
 		button = new Button(container, SWT.PUSH);
 		button.setText("Browse...");
 		button.addSelectionListener(new SelectionAdapter() {
@@ -71,14 +63,28 @@ public class CsvToSqlActionWizardPage extends WizardPage {
 			}
 		});
 		initialize();
+		csvText.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				dialogChanged();
+			}
+		});
+		sqlText.addModifyListener(new ModifyListener() {
+			public void modifyText(ModifyEvent e) {
+				dialogChanged();
+			}
+		});
 		dialogChanged();
 		setControl(container);
 	}
 
 	private void initialize() {
+		csvText.setText(csvPath == null ? "" : csvPath);
+		sqlText.setText(sqlPath == null ? "" : sqlPath);
 	}
 
 	private void dialogChanged() {
+		csvPath = csvText.getText();
+		sqlPath = sqlText.getText();
 		if (getCsvPath().length() == 0) {
 			updateStatus("A csv file must be specified");
 			return;
@@ -99,25 +105,25 @@ public class CsvToSqlActionWizardPage extends WizardPage {
 			updateStatus("Csv file be must be readable");
 			return;
 		}
-		if (sqlFile.exists()){
+		if (sqlFile.exists()) {
 			if (sqlFile.isDirectory()) {
 				updateStatus("Sql file must not be a directory");
 				return;
 			}
-			if (!sqlFile.canWrite()){
+			if (!sqlFile.canWrite()) {
 				updateStatus("Sql file be must be writable");
 				return;
 			}
-		}else{
-			if (sqlFile.getParentFile()==null){
+		} else {
+			if (sqlFile.getParentFile() == null) {
 				updateStatus("Directory the sql file belongs must be exist");
 				return;
 			}
-			if (!sqlFile.getParentFile().exists()){
+			if (!sqlFile.getParentFile().exists()) {
 				updateStatus("Directory the sql file belongs must be exist");
 				return;
 			}
-			if (!sqlFile.getParentFile().canWrite()){
+			if (!sqlFile.getParentFile().canWrite()) {
 				updateStatus("Directory the sql file belongs must be writable");
 				return;
 			}
@@ -125,10 +131,10 @@ public class CsvToSqlActionWizardPage extends WizardPage {
 		updateStatus(null);
 	}
 
-	private void handleBrowse(Text text,int flags) {
+	private void handleBrowse(Text text, int flags) {
 		FileDialog dialog = new FileDialog(getShell(), flags);
 		String result = dialog.open();
-		if (result!=null){
+		if (result != null) {
 			text.setText(result);
 		}
 	}
@@ -138,11 +144,19 @@ public class CsvToSqlActionWizardPage extends WizardPage {
 		setPageComplete(message == null);
 	}
 
+	public void setCsvPath(String csvPath) {
+		this.csvPath = csvPath;
+	}
+
+	public void setSqlPath(String sqlPath) {
+		this.sqlPath = sqlPath;
+	}
+
 	public String getCsvPath() {
-		return csvText.getText();
+		return csvPath;
 	}
 
 	public String getSqlPath() {
-		return sqlText.getText();
+		return sqlPath;
 	}
 }

@@ -15,6 +15,7 @@ import org.eclipse.ui.part.MultiPageEditorActionBarContributor;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
 
+import com.eclipseuzmani.csvtodb.Activator;
 import com.eclipseuzmani.csvtodb.wizards.CsvToSqlActionWizard;
 
 /**
@@ -56,6 +57,7 @@ public class CSVToSQLMultiPageEditorContributor extends
 		sampleAction = new Action() {
 			public void run() {
 				CsvToSqlActionWizard wizard = new CsvToSqlActionWizard(activeEditorPart.getCsvToSql());
+				wizard.setDialogSettings(Activator.getDefault().getDialogSettings());
 				WizardDialog dialog = new WizardDialog(activeEditorPart.getSite().getShell(), wizard);
 				dialog.create();
 				dialog.open();

@@ -1,32 +1,84 @@
 package com.eclipseuzmani.csvtodb.wizards;
 
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
+import java.io.Reader;
+import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.eclipse.core.runtime.CoreException;
+import org.apache.commons.lang.text.StrLookup;
+import org.apache.commons.lang.text.StrSubstitutor;
 import org.eclipse.core.runtime.IProgressMonitor;
+import org.eclipse.jface.dialogs.IDialogSettings;
 import org.eclipse.jface.dialogs.MessageDialog;
 import org.eclipse.jface.operation.IRunnableWithProgress;
 import org.eclipse.jface.wizard.Wizard;
 
+import au.com.bytecode.opencsv.CSVReader;
+
 import com.eclipseuzmani.csvtodb.editors.CsvToSql;
 
-public class CsvToSqlActionWizard extends Wizard{
+public class CsvToSqlActionWizard extends Wizard {
 	private CsvToSqlActionWizardPage page = new CsvToSqlActionWizardPage();
 	private final CsvToSql csvToSql;
-	public CsvToSqlActionWizard(CsvToSql csvToSql){
+
+	private static class RowStrLookup extends StrLookup {
+		private final Pattern patternCell = Pattern
+				.compile("\\Acolumn(\\d)\\Z");
+		private final Pattern patternCellSqlString = Pattern
+				.compile("\\Acolumn(\\d).string\\Z");
+		private String[] row;
+
+		public String[] getRow() {
+			return row;
+		}
+
+		public void setRow(String[] row) {
+			this.row = row;
+		}
+
+		@Override
+		public String lookup(String arg) {
+			Matcher matcher = patternCell.matcher(arg);
+			if (matcher.find()) {
+				int i = Integer.parseInt(matcher.group(1)) - 1;
+				if (i >= 0 && i < row.length) {
+					return row[i];
+				}
+			}
+			matcher = patternCellSqlString.matcher(arg);
+			if (matcher.find()) {
+				int i = Integer.parseInt(matcher.group(1)) - 1;
+				if (i >= 0 && i < row.length) {
+					return toString(row[i]);
+				}
+			}
+			return null;
+		}
+
+		private String toString(String s) {
+			return "'" + s.replace("'", "''") + "'";
+		}
+	}
+
+	public CsvToSqlActionWizard(CsvToSql csvToSql) {
 		this.csvToSql = csvToSql;
 		setNeedsProgressMonitor(true);
 	}
+
 	@Override
 	public boolean performFinish() {
 		final File csvFile = new File(page.getCsvPath());
 		final File sqlFile = new File(page.getSqlPath());
 		IRunnableWithProgress op = new IRunnableWithProgress() {
-			public void run(IProgressMonitor monitor) throws InvocationTargetException {
+			public void run(IProgressMonitor monitor)
+					throws InvocationTargetException {
 				try {
 					doFinish(csvFile, sqlFile, monitor);
 				} catch (IOException e) {
@@ -38,24 +90,55 @@ public class CsvToSqlActionWizard extends Wizard{
 		};
 		try {
 			getContainer().run(true, false, op);
+			IDialogSettings dialogSettings = getDialogSettings();
+			if (dialogSettings != null) {
+				dialogSettings.put("csvPath", page.getCsvPath());
+				dialogSettings.put("sqlPath", page.getSqlPath());
+			}
 		} catch (InterruptedException e) {
 			return false;
 		} catch (InvocationTargetException e) {
 			Throwable realException = e.getTargetException();
-			MessageDialog.openError(getShell(), "Error", realException.getMessage());
+			MessageDialog.openError(getShell(), "Error",
+					realException.getMessage());
 			return false;
 		}
 		return true;
 	}
 
-	private void doFinish(File csvFile, File sqlFile, IProgressMonitor monitor) throws IOException {
-		FileOutputStream fos = new FileOutputStream(sqlFile);
-		try{
-			fos.write(csvToSql.getPre().getBytes());
-		}finally{
-			fos.close();
+	private void doFinish(File csvFile, File sqlFile, IProgressMonitor monitor)
+			throws IOException {
+		Reader in = new BufferedReader(new FileReader(csvFile));
+		try {
+			Writer out = new BufferedWriter(new FileWriter(sqlFile));
+			try {
+				CSVReader reader = new CSVReader(in);
+				out.write(csvToSql.getPre());
+				RowStrLookup lookup = new RowStrLookup();
+				StrSubstitutor strSubst = new StrSubstitutor(lookup);
+				while (true) {
+					String[] row = reader.readNext();
+					if (row == null)
+						break;
+					lookup.setRow(row);
+					out.write(strSubst.replace(csvToSql.getDetail()));
+				}
+				out.write(csvToSql.getPost());
+			} finally {
+				out.close();
+			}
+		} finally {
+			in.close();
 		}
 	}
+
+	@Override
+	public void setDialogSettings(IDialogSettings settings) {
+		super.setDialogSettings(settings);
+		page.setCsvPath(settings.get("csvPath"));
+		page.setSqlPath(settings.get("sqlPath"));
+	}
+
 	@Override
 	public void addPages() {
 		addPage(page);

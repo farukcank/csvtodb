@@ -10,6 +10,9 @@ Require-Bundle: org.eclipse.ui,
  org.eclipse.jface.text,
  org.eclipse.core.resources,
  org.eclipse.ui.editors,
- org.eclipse.ui.ide
+ org.eclipse.ui.ide,
+ org.apache.commons.lang;bundle-version="2.0.0"
 Bundle-RequiredExecutionEnvironment: JavaSE-1.6
 Bundle-ActivationPolicy: lazy
+Bundle-ClassPath: lib/opencsv-2.1.jar,
+ .
