@@ -40,8 +40,8 @@ public class CsvToSqlNewWizardPage extends WizardPage {
 	 */
 	public CsvToSqlNewWizardPage(ISelection selection) {
 		super("wizardPage");
-		setTitle("Multi-page Editor File");
-		setDescription("This wizard creates a new file with *.csvtosql extension that can be opened by a multi-page editor.");
+		setTitle("Csv to sql File");
+		setDescription("This wizard creates a new file with *.csvtosql.");
 		this.selection = selection;
 	}
 

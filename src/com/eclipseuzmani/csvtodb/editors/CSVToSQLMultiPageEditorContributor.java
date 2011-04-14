@@ -2,6 +2,7 @@ package com.eclipseuzmani.csvtodb.editors;
 
 import org.eclipse.jface.action.*;
 import org.eclipse.jface.dialogs.MessageDialog;
+import org.eclipse.jface.wizard.WizardDialog;
 import org.eclipse.ui.IActionBars;
 import org.eclipse.ui.IEditorPart;
 import org.eclipse.ui.IWorkbenchActionConstants;
@@ -13,6 +14,8 @@ import org.eclipse.ui.part.EditorActionBarContributor;
 import org.eclipse.ui.part.MultiPageEditorActionBarContributor;
 import org.eclipse.ui.texteditor.ITextEditor;
 import org.eclipse.ui.texteditor.ITextEditorActionConstants;
+
+import com.eclipseuzmani.csvtodb.wizards.CsvToSqlActionWizard;
 
 /**
  * Manages the installation/deinstallation of global actions for multi-page editors.
@@ -44,8 +47,12 @@ public class CSVToSQLMultiPageEditorContributor extends EditorActionBarContribut
 	private void createActions() {
 		sampleAction = new Action() {
 			public void run() {
-				CsvToSql csvToSql = activeEditorPart.getCsvToSql();
-				System.out.println("Executed : "+csvToSql);
+				CsvToSqlActionWizard wizard =  new CsvToSqlActionWizard();
+				WizardDialog dialog = new WizardDialog(getPage().getActivePart().getSite().getShell(), wizard);
+			    dialog.create();
+			    dialog.open();
+				//CsvToSql csvToSql = activeEditorPart.getCsvToSql();
+				//System.out.println("Executed : "+csvToSql);
 			}
 		};
 		sampleAction.setText("Generate Sql");
