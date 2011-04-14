@@ -3,9 +3,11 @@ package com.eclipseuzmani.csvtodb.wizards;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileReader;
-import java.io.FileWriter;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.io.Reader;
 import java.io.Writer;
 import java.lang.reflect.InvocationTargetException;
@@ -76,11 +78,14 @@ public class CsvToSqlActionWizard extends Wizard {
 	public boolean performFinish() {
 		final File csvFile = new File(page.getCsvPath());
 		final File sqlFile = new File(page.getSqlPath());
+		final String csvEncoding = page.getCsvEncoding();
+		final String sqlEncoding = page.getSqlEncoding();
 		IRunnableWithProgress op = new IRunnableWithProgress() {
 			public void run(IProgressMonitor monitor)
 					throws InvocationTargetException {
 				try {
-					doFinish(csvFile, sqlFile, monitor);
+					doFinish(csvFile, sqlFile, csvEncoding, sqlEncoding,
+							monitor);
 				} catch (IOException e) {
 					throw new InvocationTargetException(e);
 				} finally {
@@ -94,6 +99,8 @@ public class CsvToSqlActionWizard extends Wizard {
 			if (dialogSettings != null) {
 				dialogSettings.put("csvPath", page.getCsvPath());
 				dialogSettings.put("sqlPath", page.getSqlPath());
+				dialogSettings.put("csvEncoding", page.getCsvEncoding());
+				dialogSettings.put("sqlEncoding", page.getSqlEncoding());
 			}
 		} catch (InterruptedException e) {
 			return false;
@@ -106,11 +113,13 @@ public class CsvToSqlActionWizard extends Wizard {
 		return true;
 	}
 
-	private void doFinish(File csvFile, File sqlFile, IProgressMonitor monitor)
-			throws IOException {
-		Reader in = new BufferedReader(new FileReader(csvFile));
+	private void doFinish(File csvFile, File sqlFile, String csvEncoding,
+			String sqlEncoding, IProgressMonitor monitor) throws IOException {
+		Reader in = new BufferedReader(new InputStreamReader(
+				new FileInputStream(csvFile), csvEncoding));
 		try {
-			Writer out = new BufferedWriter(new FileWriter(sqlFile));
+			Writer out = new BufferedWriter(new OutputStreamWriter(
+					new FileOutputStream(sqlFile), sqlEncoding));
 			try {
 				CSVReader reader = new CSVReader(in);
 				out.write(csvToSql.getPre());
@@ -137,6 +146,8 @@ public class CsvToSqlActionWizard extends Wizard {
 		super.setDialogSettings(settings);
 		page.setCsvPath(settings.get("csvPath"));
 		page.setSqlPath(settings.get("sqlPath"));
+		page.setSqlEncoding(settings.get("sqlEncoding"));
+		page.setCsvEncoding(settings.get("csvEncoding"));
 	}
 
 	@Override
