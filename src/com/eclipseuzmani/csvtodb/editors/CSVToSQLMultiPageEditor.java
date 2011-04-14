@@ -69,45 +69,6 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 	private static final ExecutorService executorService = Executors
 			.newCachedThreadPool();
 
-	private static class CsvToSql {
-		private String pre;
-		private String post;
-		private String detail;
-
-		public String getPre() {
-			return pre;
-		}
-
-		public void setPre(String pre) {
-			this.pre = pre;
-		}
-
-		public String getPost() {
-			return post;
-		}
-
-		public void setPost(String post) {
-			this.post = post;
-		}
-
-		public String getDetail() {
-			return detail;
-		}
-
-		public void setDetail(String detail) {
-			this.detail = detail;
-		}
-
-		public CsvToSql(String pre, String detail, String post) {
-			this.pre = pre;
-			this.detail = detail;
-			this.post = post;
-		}
-
-		public CsvToSql() {
-		}
-	}
-
 	private static class CsvToSqlHandler extends DefaultHandler {
 		public final CsvToSql csvToSql = new CsvToSql();
 		private StringBuilder sb = new StringBuilder();
@@ -229,9 +190,9 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 		post = new Text(composite, SWT.MULTI | SWT.BORDER);
 		GridDataFactory.defaultsFor(post).grab(true, true).applyTo(post);
 
-		pre.setText(csvToSql.pre);
-		detail.setText(csvToSql.detail);
-		post.setText(csvToSql.post);
+		pre.setText(csvToSql.getPre());
+		detail.setText(csvToSql.getDetail());
+		post.setText(csvToSql.getPost());
 
 		pre.addModifyListener(modifyListener);
 		detail.addModifyListener(modifyListener);
@@ -271,11 +232,11 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 			this.csvToSql = loadInternal(storageEditorInput.getStorage()
 					.getContents());
 			if (pre != null)
-				pre.setText(csvToSql.pre);
+				pre.setText(csvToSql.getPre());
 			if (detail != null)
-				detail.setText(csvToSql.detail);
+				detail.setText(csvToSql.getDetail());
 			if (post != null)
-				post.setText(csvToSql.post);
+				post.setText(csvToSql.getPost());
 			setDirty(false);
 		} catch (SAXException e) {
 			throw new RuntimeException(e);
@@ -293,8 +254,7 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 	@Override
 	public void doSave(IProgressMonitor monitor) {
 		try {
-			final CsvToSql csvToSql = new CsvToSql(this.pre.getText(),
-					this.detail.getText(), this.post.getText());
+			final CsvToSql csvToSql = getCsvToSql();
 			IStorageEditorInput editorInput = (IStorageEditorInput) getEditorInput()
 					.getAdapter(IStorageEditorInput.class);
 			IFile file = (IFile) editorInput.getStorage();
@@ -326,6 +286,11 @@ public class CSVToSQLMultiPageEditor extends EditorPart {
 		} catch (IOException e) {
 			throw new RuntimeException(e);
 		}
+	}
+
+	public CsvToSql getCsvToSql() {
+		return new CsvToSql(this.pre.getText(),
+				this.detail.getText(), this.post.getText());
 	}
 
 	private CsvToSql loadInternal(InputStream in) throws SAXException,
