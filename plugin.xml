@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?eclipse version="3.4"?>
+<plugin>
+
+   <extension
+         point="org.eclipse.ui.editors">
+      <editor
+            name="Csv To Sql Editor"
+            extensions="csvtosql"
+            icon="icons/sample.gif"
+            contributorClass="com.eclipseuzmani.csvtodb.editors.CSVToSQLMultiPageEditorContributor"
+            class="com.eclipseuzmani.csvtodb.editors.CSVToSQLMultiPageEditor"
+            id="com.eclipseuzmani.csvtodb.editors.CSVToSQLMultiPageEditor">
+      </editor>
+   </extension>
+   <extension
+         point="org.eclipse.ui.newWizards">
+      <category
+            name="DB Tools"
+            id="com.eclipseuzmani.csvtodb">
+      </category>
+      <wizard
+            name="Csv To Sql file"
+            icon="icons/sample.gif"
+            category="com.eclipseuzmani.csvtodb"
+            class="com.eclipseuzmani.csvtodb.wizards.CsvToSqlNewWizard"
+            id="com.eclipseuzmani.csvtodb.wizards.CsvToSqlNewWizard">
+      </wizard>
+   </extension>
+
+</plugin>
