@@ -32,9 +32,7 @@ public class CsvToSqlActionWizard extends Wizard {
 
 	private static class RowStrLookup extends StrLookup {
 		private final Pattern patternCell = Pattern
-				.compile("\\Acolumn(\\d)\\Z");
-		private final Pattern patternCellSqlString = Pattern
-				.compile("\\Acolumn(\\d).string\\Z");
+				.compile("\\Acolumn(\\d)(\\.trim)?(\\.string)?\\Z");
 		private String[] row;
 
 		public String[] getRow() {
@@ -51,16 +49,19 @@ public class CsvToSqlActionWizard extends Wizard {
 			if (matcher.find()) {
 				int i = Integer.parseInt(matcher.group(1)) - 1;
 				if (i >= 0 && i < row.length) {
-					return row[i];
-				}
+					String val = row[i];
+					String trim = matcher.group(2);
+					String string = matcher.group(3);
+					if (trim!=null){
+						val = val.trim();
+					}
+					if (string!=null){
+						val = toString(val);
+					}
+					return val;
+				}				
 			}
-			matcher = patternCellSqlString.matcher(arg);
-			if (matcher.find()) {
-				int i = Integer.parseInt(matcher.group(1)) - 1;
-				if (i >= 0 && i < row.length) {
-					return toString(row[i]);
-				}
-			}
+			
 			return null;
 		}
 
@@ -121,7 +122,7 @@ public class CsvToSqlActionWizard extends Wizard {
 			Writer out = new BufferedWriter(new OutputStreamWriter(
 					new FileOutputStream(sqlFile), sqlEncoding));
 			try {
-				CSVReader reader = new CSVReader(in);
+				CSVReader reader = new CSVReader(in, ';');
 				out.write(csvToSql.getPre());
 				RowStrLookup lookup = new RowStrLookup();
 				StrSubstitutor strSubst = new StrSubstitutor(lookup);
