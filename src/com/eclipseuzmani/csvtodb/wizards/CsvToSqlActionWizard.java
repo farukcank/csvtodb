@@ -27,6 +27,7 @@ import au.com.bytecode.opencsv.CSVReader;
 import com.eclipseuzmani.csvtodb.editors.CsvToSql;
 
 public class CsvToSqlActionWizard extends Wizard {
+	private static final Pattern patternIcd = Pattern.compile("\\A\\W*\\w+\\d+(\\.\\d+)?\\W*\\Z");
 	private CsvToSqlActionWizardPage page = new CsvToSqlActionWizardPage();
 	private final CsvToSql csvToSql;
 
@@ -130,6 +131,8 @@ public class CsvToSqlActionWizard extends Wizard {
 					String[] row = reader.readNext();
 					if (row == null)
 						break;
+					if (!patternIcd.matcher(row[0]).matches())
+						continue;
 					lookup.setRow(row);
 					out.write(strSubst.replace(csvToSql.getDetail()));
 				}
